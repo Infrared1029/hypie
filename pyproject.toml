@@ -1,0 +1,26 @@
+[project]
+name = "hypie"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "htpy>=26.5.1",
+    "watchfiles>=1.2.0",
+]
+
+[project.scripts]
+hypie = "hypie.cli.build_components:main"
+
+
+[build-system]
+requires = ["uv_build>=0.11.26,<0.12"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
+]
+examples = [
+    "fastapi[standard]>=0.139.0",
+]
