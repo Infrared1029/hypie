@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./assets/hypie_logo.jpg" alt="Logo" width="400">
+    <img src="https://raw.githubusercontent.com/Infrared1029/hypie/main/assets/hypie_logo.jpg" alt="Logo" width="400">
 </p>
 
 <!-- # Hypie -->
@@ -342,7 +342,7 @@ Let's move on to a more interesting example, a classic Todo app, inspired by the
 
 Our end result should look like this:  
 
-![todo app screenshot](./assets/todos_example.png)  
+![todo app screenshot](https://raw.githubusercontent.com/Infrared1029/hypie/main/assets/todos_example.png)  
 We are going to do two passes in this example, the first pass will give us a working app, the second pass will introduce new abstractions that allows us to refactor the code to reduce dependencies between components, both apps will be identical functionality wise, just one will be much easier to maintain and extend, let's start with the first pass.
 
 ### Pass One: Working App
@@ -503,7 +503,7 @@ class TodoDeleteModalTemplate(Template):
         ]
 ```
 This creates a modal that looks like this (when rendered):
-![todo delete modal](./assets//todo_delete_modal.png)
+![todo delete modal](https://raw.githubusercontent.com/Infrared1029/hypie/main/assets//todo_delete_modal.png)
 
 Templates are basically client-side parameterized html fragments, that you can render with concrete data on demand, one of the main differences between `Component` and `Template` is that `templates` expect client side expressions as their parameters, not python objects (basic python types like int, float, str, list and dict are coerced to the proper _hyperscript type), another difference, a `Template` needs to register its HTML template before you can render it, this is done using `Template.register_template()`, after registering the template, you can render it and then put it anywhere using the `render` and `put` commands.  
 Let's register the template in a stable place:
