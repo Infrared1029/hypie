@@ -80,9 +80,7 @@ class TodoDeleteModalTemplate(Template):
                         class_="w-3xs cursor-pointer bg-red-500 p-1 rounded-sm text-white",
                     )["Yes"],
                     htpy.button(
-                        _=On("click")[
-                            trigger(CancelTodoDeletionEvent())
-                        ],
+                        _=On("click")[trigger(CancelTodoDeletionEvent())],
                         class_="w-3xs cursor-pointer bg-gray-500 p-1 rounded-sm",
                     )["Cancel"],
                 ],

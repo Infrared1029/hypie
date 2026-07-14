@@ -12,7 +12,6 @@ from hypie.experimental.client_components import ClientComponent
 from hypie.experimental.hyperscript import HyperScript
 
 import watchfiles
-from contextlib import contextmanager
 
 
 def find_components_register_artifacts(in_path, out_path, out_files_prefix=""):
