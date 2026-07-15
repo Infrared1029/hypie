@@ -1,17 +1,24 @@
 [project]
 name = "hypie"
-version = "0.1.0"
+version = "0.1.1.dev2"
 description = "Add your description here"
 readme = "README.md"
+authors = [
+    { name = "Yasser Ahmed", email = "yasserfawzi1029@gmail.com" },
+]
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "htpy>=26.5.1",
     "watchfiles>=1.2.0",
 ]
 
+[project.urls]
+Repository = "https://github.com/Infrared1029/hypie"
+
 [project.scripts]
 hypie = "hypie.cli.build_components:main"
-
 
 [build-system]
 requires = ["uv_build>=0.11.26,<0.12"]

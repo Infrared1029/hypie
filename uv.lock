@@ -451,7 +451,7 @@ wheels = [
 
 [[package]]
 name = "hypie"
-version = "0.1.0"
+version = "0.1.1.dev2"
 source = { editable = "." }
 dependencies = [
     { name = "htpy" },
