@@ -2,6 +2,20 @@
     <img src="https://raw.githubusercontent.com/Infrared1029/hypie/main/assets/hypie_logo.jpg" alt="Logo" width="400">
 </p>
 
+## Table of Contents
+- [Intro](#intro)
+- [Installation](#installation)
+- [Motivation](#motivation)
+- [Htpy and _Hyperscript Primers](#htpy-and-hyperscript-primers)
+    - [Htpy](#htpy)
+    - [_Hyperscript](#_hyperscript)
+    - [Htpy + _Hyperscript](#htpy--_hyperscript)
+- [Hypie](#hypie)
+    - [Simple Counter Example Using Hypie](#simple-counter-example-using-hypie)
+    - [Todo App Example Using Hypie](#todo-app-example-using-hypie)
+        - [Pass One: Working App](#pass-one-working-app)
+        - [Pass Two: Refactor Towards Purer Components And An Event Driven System](#pass-two-refactor-towards-purer-components-and-an-event-driven-system)
+
 <!-- # Hypie -->
 ## Intro
 Hypie, pronounced "high-pie", is a python library for building web frontends, built on top of [_hyperscript](https://github.com/bigskysoftware/_hyperscript), a scripting language for the web made by the [htmx](https://github.com/bigskysoftware/htmx) folks, and [htpy](https://github.com/pelme/htpy), a library for generating HTML in python.  
@@ -31,7 +45,7 @@ The way Hypie pushes you to think about frontend system is as follows:
 - If you need to generate HTML from the client that does not need a server trip (i.e. a visual component that does not rely on any kind of data from the server), like a Modal, you can define a "Template" that you can render anywhere, client side, no server roundtrips.  
 
 Before diving into hypie, it is useful to take a very quick look at the two main technologies hypie relies on, htpy and _hyperscript, all examples will assume a fastapi backend, but it should work with **any** python backend framework.
-## Htpy and Hyperscript primers
+## Htpy and _Hyperscript Primers
 ### Htpy
 [htpy](https://github.com/pelme/htpy) is a python library for writing html, it is essentially a pythonic answer to templating languages.
 ```python
@@ -164,7 +178,7 @@ htpy.button(_=On("click")[
 ```
 That way you get IDE support for the arguments the different commands support, you do not deal with messy strings anymore, and the English issue is gone. Again, this is already helpful, but we can take it a step further, taking inspiration from how components look in frameworks like [Vue](https://github.com/vuejs/core) and [Svelte](https://github.com/sveltejs/svelte), a hypie component is as follows:
 
-### Hypie
+## Hypie
 ```python
 from hypie.literals import var, cls
 from hypie.commands import log, toggle
@@ -218,7 +232,7 @@ Behind the scenes, hypie adds a `data-hypie-component=<kebab-case-component_name
 
 Let's move on to other examples and introduce more capabilities and abstractions as we go.
 
-## Simple Counter Example using Hypie
+### Simple Counter Example using Hypie
 Let's create a very basic Counter Component using hypie.
 ```python
 # ui/components.py
@@ -337,7 +351,7 @@ def counter_example():
 
 You can now run the app and see the blue counter button.  
 Reminder: We are using FastAPI here but this works with any backend framework! just adjust the code based on your framework's abstractions.
-## Todo app Example using Hypie
+### Todo app Example using Hypie
 Let's move on to a more interesting example, a classic Todo app, inspired by the Todo app done in this [FastHTML tutorial](https://www.youtube.com/watch?v=Auqrm7WFc0I).
 
 Our end result should look like this:  
@@ -345,7 +359,7 @@ Our end result should look like this:
 ![todo app screenshot](https://raw.githubusercontent.com/Infrared1029/hypie/main/assets/todos_example.png)  
 We are going to do two passes in this example, the first pass will give us a working app, the second pass will introduce new abstractions that allows us to refactor the code to reduce dependencies between components, both apps will be identical functionality wise, just one will be much easier to maintain and extend, let's start with the first pass.
 
-### Pass One: Working App
+#### Pass One: Working App
 We can see 5 major UI components:
  - Layout
  - Header
@@ -610,7 +624,7 @@ def create_todo_(title: Annotated[str, Body(embed=True)]):
 ```
 That's it, now we have a very basic todo app!
 
-### Pass Two: Refactor Towards Purer Components and an Event Driven System
+#### Pass Two: Refactor Towards Purer Components and an Event Driven System
 Even though our app works, there is an issue, our components/template are not... **pure**. What does that mean, you might ask? It means, our components are dependent on things outside of their scope, for example, they are performing fetch requests, this depends on what the server returns, whether the network fails, and other variables, that are outside the scope of the component, other components like `AddTodoForm`, beside doing fetch requests as well, is also modifying other parts of the DOM, this creates a dependency between `AddTodoForm` and the parts its trying to modify, if those bits change, we will have to update `AddTodoForm`, not good.  
 
 Now a valid objection might be: "We still need to make those fetch requests and DOM modifications, the app would not work otherwise!"  
