@@ -28,7 +28,6 @@ on AddTodoEvent(AddTodoEvent__title)
       Content-Type: 'application/json'
     }
   }
-  log 'hello world'
   put result at end of #todo-items-container
   set #add-todo-input's value to ''
 end
