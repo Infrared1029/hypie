@@ -65,7 +65,7 @@ def find_components_register_artifacts(in_path, out_path, out_files_prefix=""):
     hs_files = []
     html = []
     print(
-        f"Done Proccessing: {len(COMPONENTS)} Component, {len(TEMPLATES)} Templates, {len(CLIENT_COMPONENTS)} Client Components {len(HYPERSCRIPT)} HS Scripts"
+        f"Done Proccessing: {len(COMPONENTS)} Component, {len(HYPERSCRIPT)} HS Scripts"
     )
     for c in COMPONENTS:
         style = c.generate_style(with_style_tags=False)
