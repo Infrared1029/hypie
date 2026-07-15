@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Literal, get_args
 import json
-
 from functools import wraps
 
 from textwrap import indent
