@@ -4,6 +4,7 @@
 
 ## Table of Contents
 - [Intro](#intro)
+- [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Motivation](#motivation)
 - [Htpy and _Hyperscript Primers](#htpy-and-hyperscript-primers)
@@ -23,6 +24,90 @@ Hypie, pronounced "high-pie", is a python library for building web frontends, bu
 Right now Hypie is a personal passion side project that is still very experimental. Expect breaking changes.
 
 There is no official docs website for hypie (yet), so this README is the closest thing to a documentation for now, if you are interested, I would advise reading through the whole thing, hopefully its not too long.
+
+## Quick Start
+Hypie code looks like this:
+```python
+import htpy
+from hypie import hs
+from hypie.experimental.components import Component
+from hypie.literals import var
+from hypie.features import On   
+from hypie.commands import set_
+
+class Counter(Component):
+    initial_count: int = 0
+
+    def template(self):
+        count_var = var(":count")
+
+        return htpy.div[
+            htpy.button(
+                _=hs(
+                    set_(count_var, to=self.initial_count),
+                    On("click")[
+                        set_(count_var, to=count_var + 1),
+                        set_(var("me").textContent, to=f"Count is: {count_var}"),
+                    ],
+                )
+            )[f"Count is: {self.initial_count}"]
+        ]
+
+    @staticmethod
+    def style():
+        return {
+            "button": {
+                "background-color": "#4A90D9",
+                "color": "#ffffff",
+                "border": "none",
+                "border-radius": "6px",
+                "padding": "10px 20px",
+                "font-size": "16px",
+                "font-weight": "600",
+                "cursor": "pointer",
+                "transition": "background-color 0.2s ease",
+            },
+            "button:hover": {"background-color": "#3A7BC8"},
+        }
+```
+After that, you build the css of the components:
+```sh
+hypie build -i <path/to/components/dir> -o <path/to/static_or_dist/dir> --watch
+```
+And return your components from your preferred python backend framework:
+
+```python
+import pathlib
+
+import htpy
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from .ui.components import Counter
+
+app = FastAPI()
+
+app.mount(
+    "/static", StaticFiles(directory=pathlib.Path(__file__).parent.resolve() / "static")
+)
+
+
+@app.get("/")
+def counter_example():
+    return HTMLResponse(htpy.html[
+            htpy.head[
+                htpy.title["Counter"],
+                # this was generated with hypie build
+                htpy.link(rel="stylesheet", href="/static/_hypie_styles.css"),
+
+                # we need to load _hyperscript
+                htpy.script(src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.93"),
+            ],
+            htpy.body[
+                Counter(5)
+            ]
+        ])
+```
 
 ## Installation
 ```sh
