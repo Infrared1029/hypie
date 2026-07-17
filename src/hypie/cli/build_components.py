@@ -2,6 +2,7 @@ import importlib
 import pathlib
 import sys
 import inspect
+import traceback
 
 import argparse
 from pathlib import Path
@@ -140,9 +141,14 @@ def main():
             print("[hypie]: waiting for changes...")
             for _ in watchfiles.watch(args.input):
                 print("[hypie]: detected changes, re-running build...")
-                find_components_register_artifacts(
-                    out_files_prefix=args.prefix,
-                    in_path=args.input,
-                    out_path=args.output,
-                )
+                try:
+                    find_components_register_artifacts(
+                        out_files_prefix=args.prefix,
+                        in_path=args.input,
+                        out_path=args.output,
+                    )
+                except KeyboardInterrupt:
+                    exit()
+                except Exception as e:
+                    traceback.print_exc()
                 print("[hypie]: waiting for changes...")
