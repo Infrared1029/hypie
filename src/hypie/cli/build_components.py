@@ -7,10 +7,11 @@ import traceback
 import argparse
 from pathlib import Path
 
-from hypie.experimental.components import Component
-from hypie.experimental.templates import Template
-from hypie.experimental.client_components import ClientComponent
-from hypie.experimental.hyperscript import HyperScript
+from hypie.experimental.components import Component, ServerFragment
+from hypie.experimental.templates import Template, ClientFragment
+# from hypie.experimental.client_components import ClientComponent
+from hypie.experimental.hyperscript import HyperScript, script
+from hypie.hs_ast.expressions import Expr
 
 import watchfiles
 
@@ -21,8 +22,10 @@ def find_components_register_artifacts(in_path, out_path, out_files_prefix=""):
 
     COMPONENTS: set[Component] = set()
     TEMPLATES: set[Template] = set()
-    CLIENT_COMPONENTS: set[ClientComponent] = set()
+    # CLIENT_COMPONENTS: set[ClientComponent] = set()
     HYPERSCRIPT: set[HyperScript] = set()
+    SCRIPTS = set()
+    BEHAVIORS = set()
 
     path = pathlib.Path(in_path).resolve()
     if not path.exists():
@@ -46,19 +49,19 @@ def find_components_register_artifacts(in_path, out_path, out_files_prefix=""):
         mod = importlib.import_module(module_name)
         MODULES.add(module_name)
         for _, obj in inspect.getmembers(mod):
-            if hasattr(obj, "_hs_dsl_component") and obj._hs_dsl_component == True:
+            if isinstance(obj, Expr):
+                continue
+            if isinstance(obj, type) and issubclass(obj, (Component, ServerFragment)):
                 COMPONENTS.add(obj)
-            elif hasattr(obj, "_hs_dsl_template") and obj._hs_dsl_template == True:
+            elif isinstance(obj, type) and issubclass(obj, (Template, ClientFragment)):
                 TEMPLATES.add(obj)
-            elif (
-                hasattr(obj, "_hs_dsl_client_component")
-                and obj._hs_dsl_client_component == True
-            ):
-                CLIENT_COMPONENTS.add(obj)
-            elif (
-                hasattr(obj, "_hs_dsl_hyperscript") and obj._hs_dsl_hyperscript == True
-            ):
+            elif isinstance(obj, type) and issubclass(obj, HyperScript):
                 HYPERSCRIPT.add(obj)
+            elif getattr(obj, "_hs_script", False) == True:
+                print(obj, getattr(obj, "_hs_script") == True)
+                SCRIPTS.add(obj)
+            elif getattr(obj, "_hs_behavior", False) == True:
+                BEHAVIORS.add(obj)
 
     # create css files
     styles = []
@@ -73,13 +76,18 @@ def find_components_register_artifacts(in_path, out_path, out_files_prefix=""):
         if style:
             styles.append(style)
 
-    for c_comp in CLIENT_COMPONENTS:
-        template = c_comp.register_template()
-        if template:
-            html.append(str(template))
-
     for h in HYPERSCRIPT:
         script = h.register_hyperscript()
+        if script:
+            hs_files.append(script)
+    
+    for h in SCRIPTS:
+        script = h()
+        if script:
+            hs_files.append(script)
+    
+    for b in BEHAVIORS:
+        script = b._behavior
         if script:
             hs_files.append(script)
 

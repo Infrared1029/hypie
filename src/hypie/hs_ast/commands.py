@@ -1,10 +1,11 @@
 from typing import Literal, TypedDict, Iterable
 from dataclasses import dataclass, field
-from textwrap import indent
+from textwrap import indent, dedent
 
 from hypie.hs_ast.expressions import *
 from hypie.hs_ast.constants import *
 from hypie.hs_ast import helpers
+from markupsafe import Markup
 
 
 class Command:
@@ -12,7 +13,7 @@ class Command:
         pass
 
     def __html__(self):
-        return self.render()
+        return Markup(self.render())
 
     # __html__ = __str__
     __str__ = __html__
@@ -476,3 +477,34 @@ class Render(Command):
             )
             rendered += f" with {values}"
         return rendered
+
+
+@dataclass
+class Append(Command):
+    expr: Expr
+    to: Expr
+
+    def render(self):
+        expr = python_to_hs(self.expr)
+        to = python_to_hs(self.to)
+        return f"append {expr} to {to}"
+
+
+@dataclass
+class Js(Command):
+    vars: list[str]
+    javascript: str = None
+
+    def __getitem__(self, javascript: str):
+        if not isinstance(javascript, str):
+            raise Exception("js command only accepts a single javascript string")
+        self.javascript = dedent(re.sub(r"\A[\n]+|[\s\n]+\Z", "", javascript))
+        return self
+    
+    def render(self):
+        if not self.javascript:
+            raise Exception("No javascript was provided to Js command")
+        header = "js" + f"({', '.join(self.vars)})"
+        body = indent(self.javascript, INDENT, lambda _: True)
+        footer = "end"
+        return "\n".join([header, body, footer])

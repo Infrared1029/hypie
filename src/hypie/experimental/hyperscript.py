@@ -2,7 +2,7 @@ import dataclasses
 
 from hypie.literals import var
 from hypie.commands import set_
-from hypie import hs
+from hypie.features import hs
 
 
 class HyperScript:
@@ -33,3 +33,11 @@ class HyperScript:
         _hs.add_features(cls._vars_script)
         _hs.add_features(cls.script())
         return _hs
+
+
+
+def script(func):
+    def wrapper():
+        return func()
+    wrapper._hs_script = True
+    return wrapper

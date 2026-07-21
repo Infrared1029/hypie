@@ -3,7 +3,7 @@ from typing import overload
 from hypie.hs_ast.commands import *
 from hypie.hs_ast.expressions import *
 from hypie.events import Event
-from hypie.experimental.templates import Template
+from hypie.experimental.templates import Template, ClientFragment
 # from hypie.experimental.client_components import ClientComponent
 
 
@@ -128,26 +128,26 @@ def set_(set_expr: VariableLiteral, /, to: Expr):
 
 
 def put(expr: Expr, /, placement: PUT_PLACEMENTS, target: Expr):
-    if (
-        hasattr(expr, "_hs_dsl_client_component")
-        and expr._hs_dsl_client_component == True
-    ):
-        # expr = TemplateLiteral(expr.__html__())
-        tag = f"<{expr.component_name}/>"
-        # f:python_to_hs(getattr(self, f)) for f in self.field_names
-        commands = [make(tag)]
-        # for f in expr.field_names
-        return [
-            make(tag),
-            [
-                set_(
-                    VariableLiteral(f"result's @{f}"),
-                    to=VariableLiteral(f"`'${{{getattr(expr, f)}}}'`"),
-                )
-                for f in expr.field_names
-            ],
-            Put(expr=VariableLiteral("result"), placement=placement, target=target),
-        ]
+    # if (
+    #     hasattr(expr, "_hs_dsl_client_component")
+    #     and expr._hs_dsl_client_component == True
+    # ):
+    #     # expr = TemplateLiteral(expr.__html__())
+    #     tag = f"<{expr.component_name}/>"
+    #     # f:python_to_hs(getattr(self, f)) for f in self.field_names
+    #     commands = [make(tag)]
+    #     # for f in expr.field_names
+    #     return [
+    #         make(tag),
+    #         [
+    #             set_(
+    #                 VariableLiteral(f"result's @{f}"),
+    #                 to=VariableLiteral(f"`'${{{getattr(expr, f)}}}'`"),
+    #             )
+    #             for f in expr.field_names
+    #         ],
+    #         Put(expr=VariableLiteral("result"), placement=placement, target=target),
+    #     ]
     return Put(expr=expr, placement=placement, target=target)
 
 
@@ -211,10 +211,22 @@ def make(object_name: str, /, *from_: Expr | list[Expr], called: str = None):
     return Make(object_name=object_name, from_=from_, called=called)
 
 
-def render(template: Template):
-    if isinstance(template, Template):
+def render(template: Template | ClientFragment):
+    if isinstance(template, (ClientFragment | Template)):
         return Render(
-            template_id=template.id,
+            template_id=template._template_id,
             with_={f: getattr(template, f) for f in template.field_names},
         )
-    raise Exception("render only accepts Template objects")
+    raise Exception("render only accepts Client Fragments")
+
+def append(expr: Expr, / , to):
+    return Append(expr=expr, to=to)
+
+def js(*vars):
+    _vars = []
+    for v in vars:
+        if isinstance(v, VariableLiteral):
+            _vars.append(v.symbol)
+        else:
+            _vars.append(v)
+    return Js(vars=_vars)

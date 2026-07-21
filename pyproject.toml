@@ -30,6 +30,7 @@ dev = [
 ]
 examples = [
     "fastapi[standard]>=0.139.0",
+    "requests>=2.34.2",
 ]
 
 [[tool.uv.index]]

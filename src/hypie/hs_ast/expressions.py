@@ -76,10 +76,11 @@ def coerce_arguments(func):
 
 
 def wrap_if_not_literal(v):
+    if isinstance(v, TemplatedVariableLiteral):
+        v = v.symbol
     if isinstance(v, Expr) and not isinstance(v, get_args(Literals.__value__)):
         return Parentheses(v)
     return v
-
 
 def wrap_expressions(func):
     @wraps(func)
@@ -90,7 +91,10 @@ def wrap_expressions(func):
         new_kwargs = {}
         for k, v in kwargs.items():
             new_kwargs[k] = wrap_if_not_literal(v)
-        return func(*new_args, **new_kwargs)
+        out = func(*new_args, **new_kwargs)
+        if all([isinstance(a, TemplatedVariableLiteral) for a in args]) and all(isinstance(v, TemplatedVariableLiteral) for v in kwargs.values()):
+            return TemplatedVariableLiteral(out)
+        return out
 
     return wrapped
 
@@ -99,8 +103,8 @@ PATTERN = re.compile(r"\?VAR:<(.*?)>\?")
 
 
 class VarTemplateString:
-    def __init__(self, source: str):
-        self.pattern = PATTERN
+    def __init__(self, source: str, pattern = None):
+        self.pattern = pattern or PATTERN
         self.source = source
         self.strings = []
         self.interpolations = []
@@ -139,10 +143,13 @@ class VarTemplateString:
 
 
 class Expr:
+    _is_template = False
     def __html__(self):
+        if self._is_template: return self.render()
         return "${" + self.render() + "}"
 
     def __str__(self):
+        if self._is_template: return self.render()
         return f"?VAR:<{self.render()}>?"
 
     # __html__ = __str__
@@ -211,6 +218,11 @@ class Expr:
     @wrap_expressions
     def __ne__(self, other):
         return BinaryOp(kind="ne", left=self, right=other)
+    
+    @coerce_arguments
+    @wrap_expressions
+    def __eq__(self, other):
+        return BinaryOp(kind="eq", left=self, right=other)
 
     @coerce_arguments
     @wrap_expressions
@@ -270,7 +282,7 @@ class Expr:
 ################## BASIC TYPES ##################
 
 
-@dataclass
+@dataclass(eq=False)
 class StringLiteral(Expr):
     value: str
 
@@ -278,7 +290,8 @@ class StringLiteral(Expr):
         return python_to_hs(self.value)
 
 
-@dataclass
+@dataclass(eq=False)
+
 class TemplateLiteral(Expr):
     value: str
 
@@ -286,7 +299,8 @@ class TemplateLiteral(Expr):
         return f"`{self.value}`"
 
 
-@dataclass
+@dataclass(eq=False)
+
 class NumberLiteral(Expr):
     value: int | float
 
@@ -294,7 +308,8 @@ class NumberLiteral(Expr):
         return python_to_hs(self.value)
 
 
-@dataclass
+@dataclass(eq=False)
+
 class BooleanLiteral(Expr):
     value: Literal[True, False]
 
@@ -302,13 +317,13 @@ class BooleanLiteral(Expr):
         return python_to_hs(self.value)
 
 
-@dataclass
+@dataclass(eq=False)
 class NullLiteral(Expr):
     def render(self):
         return python_to_hs(self.value)
 
 
-@dataclass
+@dataclass(eq=False)
 class ListLiteral(Expr):
     value: list
 
@@ -316,7 +331,7 @@ class ListLiteral(Expr):
         return python_to_hs(self.value)
 
 
-@dataclass
+@dataclass(eq=False)
 class ObjectLiteral(Expr):
     value: dict
 
@@ -326,7 +341,7 @@ class ObjectLiteral(Expr):
 
 ################## DOM ##################
 # class
-@dataclass
+@dataclass(eq=False)
 class ClassDOMLiteral(Expr):
     class_: str
 
@@ -349,7 +364,7 @@ class ClassDOMLiteral(Expr):
 
 
 # query
-@dataclass
+@dataclass(eq=False)
 class QueryDOMLiteral(Expr):
     query: str
 
@@ -372,7 +387,7 @@ class QueryDOMLiteral(Expr):
 
 
 # id
-@dataclass
+@dataclass(eq=False)
 class IdDOMLiteral(Expr):
     id_: str
 
@@ -394,7 +409,7 @@ class IdDOMLiteral(Expr):
         return InDOM(self, other)
 
 
-@dataclass
+@dataclass(eq=False)
 class AttrLiteral(Expr):
     attr_name: str
     attr_value: str = None
@@ -410,7 +425,7 @@ type CSSExpr = IdDOMLiteral | QueryDOMLiteral | ClassDOMLiteral
 
 
 ################## VARIABLE ##################
-@dataclass
+@dataclass(eq=False)
 class VariableLiteral(Expr):
     symbol: str
 
@@ -418,12 +433,12 @@ class VariableLiteral(Expr):
         return f"{self.symbol}"
 
 
-@dataclass
+@dataclass(eq=False)
 class TemplatedVariableLiteral(Expr):
-    symbol: str
+    symbol: Expr
 
     def render(self):
-        return "${" + self.symbol + "}"
+        return "${" + self.symbol.render() + "}"
 
     def __html__(self):
         return self.render()
@@ -436,7 +451,7 @@ class TemplatedVariableLiteral(Expr):
 type TIME_RES = Literal["s", "ms"]
 
 
-@dataclass
+@dataclass(eq=False)
 class TimeLiteral(Expr):
     time: int
     resolution: TIME_RES = "ms"
@@ -446,7 +461,7 @@ class TimeLiteral(Expr):
 
 
 ################## Event ##################
-@dataclass
+@dataclass(eq=False)
 class EventLiteral(Expr):
     event_name: str
     bind: dict[str, Expr] = field(default_factory=lambda: {})
@@ -462,7 +477,7 @@ class EventLiteral(Expr):
         return rendered
 
 
-@dataclass
+@dataclass(eq=False)
 class EventSpecLiteral(Expr):
     event_name: str
     args: list[str] = field(default_factory=lambda: [])
@@ -499,7 +514,7 @@ class EventSpecLiteral(Expr):
 
 
 ################## DOM POSITONING ##################
-@dataclass
+@dataclass(eq=False)
 class InDOM(Expr):
     css_selector: CSSExpr
     target: CSSExpr
@@ -508,7 +523,7 @@ class InDOM(Expr):
         return f"{self.css_selector.render()} in {self.target.render()}"
 
 
-@dataclass
+@dataclass(eq=False)
 class RelativetDOM(Expr):
     kind: Literal["next", "previous"]
     css_selector: CSSExpr
@@ -527,7 +542,7 @@ class RelativetDOM(Expr):
         return rendered
 
 
-@dataclass
+@dataclass(eq=False)
 class ClosestDOM(Expr):
     kind: Literal["closest", "closest parent"]
     css_selector: CSSExpr
@@ -556,11 +571,12 @@ type Literals = (
     | PropertyAccess
     | PropertyAccessBrackets
     | AsType
+    # | TemplatedVariableLiteral
 )
 
 
 ################## COLLECTIONS ##################
-@dataclass
+@dataclass(eq=False)
 class PositionalCollection(Expr):
     kind: Literal["first", "last", "random"]
     collection: Expr
@@ -570,7 +586,7 @@ class PositionalCollection(Expr):
         return f"{self.kind} {self.collection.render()}"
 
 
-@dataclass
+@dataclass(eq=False)
 class Where(Expr):
     collection: Expr
     condition: Expr
@@ -579,7 +595,7 @@ class Where(Expr):
         return f"{self.collection.render()} where {self.condition.render()}"
 
 
-@dataclass
+@dataclass(eq=False)
 class MappedTo(Expr):
     collection: Expr
     expr: Expr
@@ -589,7 +605,7 @@ class MappedTo(Expr):
 
 
 ################## PROPERTY ACCESS ##################
-@dataclass
+@dataclass(eq=False)
 class PropertyAccess(Expr):
     expr: Expr
     property: str
@@ -602,7 +618,7 @@ class PropertyAccess(Expr):
         return f"{self.expr.render()}'s {self.property}"
 
 
-@dataclass
+@dataclass(eq=False)
 class PropertyAccessBrackets(Expr):
     expr: Expr
     property: Expr | str
@@ -645,11 +661,15 @@ type BOOL_BINARY_OPS = Literal[
 ]
 
 
-@dataclass
+@dataclass(eq=False)
 class BinaryOp(Expr):
     kind: MATH_BINARY_OPS | LOGICAL_BINARY_OPS | BOOL_BINARY_OPS
     left: Expr
     right: Expr
+
+    def __post_init__(self):
+        if isinstance(self.left, TemplatedVariableLiteral) and isinstance(self.right, TemplatedVariableLiteral):
+            self._is_template = True
 
     def render(self):
         op = None
@@ -674,6 +694,8 @@ class BinaryOp(Expr):
                 op = "!="
             case _:
                 op = self.kind
+        if self._is_template:
+            return TemplatedVariableLiteral(f"{self.left.symbol} {op} {self.right.symbol}").render()
         return f"{self.left.render()} {op} {self.right.render()}"
 
 
@@ -684,7 +706,7 @@ BOOL_Unary_OPS = Literal[
 ]
 
 
-@dataclass
+@dataclass(eq=False)
 class UnaryOp(Expr):
     pass
 
@@ -692,7 +714,7 @@ class UnaryOp(Expr):
 ################## PARENTHESES ##################
 
 
-@dataclass
+@dataclass(eq=False)
 class Parentheses(Expr):
     expr: Expr
 
@@ -701,7 +723,7 @@ class Parentheses(Expr):
 
 
 ################## TYPE CONVERSION ##################
-@dataclass
+@dataclass(eq=False)
 class TypeConversion(Expr):
     expr: Expr
     type: Literal["JSON", "JSONString"] | Expr
@@ -710,7 +732,7 @@ class TypeConversion(Expr):
         return f"{self.expr.render()} as {self.type.render() if isinstance(self.type, Expr) else self.type}"
 
 
-@dataclass
+@dataclass(eq=False)
 class AsType(Expr):
     expr: Expr
     type: Literal["JSON", "JSONString"]

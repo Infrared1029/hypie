@@ -1,4 +1,4 @@
-from hypie.literals import var, Expr, TimeLiteral
+from hypie.literals import var, Expr, TimeLiteral, python_to_hs
 from typing import Literal, dataclass_transform
 from dataclasses import fields, dataclass, is_dataclass
 

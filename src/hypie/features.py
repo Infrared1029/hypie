@@ -1,6 +1,16 @@
+from __future__ import annotations
+
+import inspect
+
 from hypie.hs_ast.features import *
 from hypie.commands import set_
 from hypie.events import Event
+
+
+
+def hs(*features):
+    return Hs(features)
+
 
 
 # so you can call it as init() or init[] both work
@@ -44,3 +54,30 @@ def WhenChange(*exprs):
 
 def Js(javascript: str, /):
     return JsF(javascript)
+
+def behavior(func):
+    sig = inspect.signature(func)
+    args = [a for a in sig.parameters.keys()]
+    features = func(**{a:VariableLiteral(a) for a in args})
+    b = BehaviorF(func.__name__, param_list=args)[
+        features
+    ]
+    def wrapped(*args, **kwargs):
+        bound_args = sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        named_args = bound_args.arguments
+        return BoundedBehavior(name=func.__name__, named_args=named_args)
+    wrapped._behavior = b
+    wrapped._hs_behavior = True
+    return wrapped
+
+def Install(*bounded_behaviors: BoundedBehavior):
+    _bounded_behaviors = []
+    for b in bounded_behaviors:
+        if not isinstance(b, BoundedBehavior) and getattr(b, "_hs_behavior", False) == True:
+            _bounded_behaviors.append(b())
+        else:
+            _bounded_behaviors.append(b)
+    return Hs([
+        InstallF(b.name,b.named_args) for b in _bounded_behaviors
+    ])
