@@ -2,6 +2,8 @@
     <img src="https://raw.githubusercontent.com/Infrared1029/hypie/main/assets/hypie_logo.jpg" alt="Logo" width="400">
 </p>
 
+
+Note: A big re-work to some ideas is in the process, it will mostly be a cleaner evolution of the existing abstractions and better examples, so the README is still ~relevant, stay tuned.
 ## Table of Contents
 - [Intro](#intro)
 - [Quick Start](#quick-start)
