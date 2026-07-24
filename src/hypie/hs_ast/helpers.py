@@ -19,8 +19,8 @@ def kebab_case_name(name):
 
 
 def htpy_to_tree(el):
-    from hypie.experimental.components import Component, ServerFragment, ServerFragmentMeta
-    from hypie.experimental.templates import Template, ClientFragment, For
+    from hypie.experimental.server_component import ServerComponent, ServerComponentMeta
+    from hypie.experimental.client_component import ClientComponent, For
 
     # print()
     if isinstance(el, Expr):
@@ -31,7 +31,7 @@ def htpy_to_tree(el):
         element_type = "_fragment"
         nodes = el._node or []
         attrs = ""
-    elif isinstance(el, (Component, ServerFragment, ServerFragmentMeta, Template, ClientFragment)):
+    elif isinstance(el, (ServerComponent, ServerComponentMeta, ClientComponent)):
         try:
             el = el.__html__()
         except TypeError as e: 
@@ -81,7 +81,7 @@ def tranform_tree(tree: dict, rules: dict):
 
 
 def tree_to_htpy(tree):
-    from hypie.experimental.templates import For
+    from hypie.experimental.client_component import For
 
     if not isinstance(tree, dict):
         return tree

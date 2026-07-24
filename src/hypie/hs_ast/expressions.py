@@ -165,12 +165,18 @@ class Expr:
         # htpy attempts to check for this, which makes __html__ fail
         if name == "iter_chunks":
             raise AttributeError()
+        if isinstance(self, TemplatedVariableLiteral):
+            return TemplatedVariableLiteral(PropertyAccess(self.symbol, property=name))
         return PropertyAccess(self, property=name)
 
     def prop(self, name: str):
+        if isinstance(self, TemplatedVariableLiteral):
+            return TemplatedVariableLiteral(PropertyAccess(self.symbol, property=name))
         return PropertyAccess(self, property=name)
 
     def __getitem__(self, name: str | Expr):
+        if isinstance(self, TemplatedVariableLiteral):
+            return TemplatedVariableLiteral(PropertyAccessBrackets(self.symbol, property=name))
         return PropertyAccessBrackets(self, property=name)
 
     # binary
@@ -435,10 +441,14 @@ class VariableLiteral(Expr):
 
 @dataclass(eq=False)
 class TemplatedVariableLiteral(Expr):
-    symbol: Expr
+    symbol: Expr | str
 
     def render(self):
-        return "${" + self.symbol.render() + "}"
+        _symbol = self.symbol
+        if isinstance(self.symbol, str):
+            _symbol = VariableLiteral(self.symbol)
+        
+        return "${" + _symbol.render() + "}"
 
     def __html__(self):
         return self.render()

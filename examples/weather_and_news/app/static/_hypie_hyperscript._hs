@@ -1,0 +1,45 @@
+behavior rerender_weather_widget
+  on RequestingRegionDataEvent from closest <[data-weather-news-hub]/>
+    remove .hidden from <[data-weather-loading]/> in me
+  end
+  on UpdateWeatherNewEvent(UpdateWeatherNewEvent__dom_patch) from closest <[data-weather-news-hub]/>
+    set my_patch to (first (<[data-weather-widget]/> in UpdateWeatherNewEvent__dom_patch))
+    if my_patch
+      morph me to my_patch
+    end
+  end
+end
+behavior weather_and_news_effects_streamed
+  init immediately
+    set @data-weather-news-hub to true
+  end
+  on RegionClicked(RegionClicked__region)
+    trigger RequestingRegionDataEvent
+    fetch `/stream/data?region_id=${RegionClicked__region}` as Stream
+  end
+  on server:fragment
+    trigger UpdateWeatherNewEvent(UpdateWeatherNewEvent__dom_patch:event's detail's data as Fragment)
+  end
+end
+behavior rerender_news_widget
+  on RequestingRegionDataEvent from closest <[data-weather-news-hub]/>
+    remove .hidden from <[data-news-loading]/> in me
+  end
+  on UpdateWeatherNewEvent(UpdateWeatherNewEvent__dom_patch) from closest <[data-weather-news-hub]/>
+    set my_patch to (first (<[data-news-widget]/> in UpdateWeatherNewEvent__dom_patch))
+    if my_patch
+      morph me to my_patch
+      add .hidden to <[data-news-loading]/> in me
+    end
+  end
+end
+behavior weather_and_news_effects
+  init immediately
+    set @data-weather-news-hub to true
+  end
+  on RegionClicked(RegionClicked__region)
+    trigger RequestingRegionDataEvent
+    fetch `/data?region_id=${RegionClicked__region}` as HTML
+    trigger UpdateWeatherNewEvent(UpdateWeatherNewEvent__dom_patch:result)
+  end
+end

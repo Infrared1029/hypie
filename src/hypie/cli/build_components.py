@@ -7,11 +7,8 @@ import traceback
 import argparse
 from pathlib import Path
 
-from hypie.experimental.components import Component, ServerFragment
-from hypie.experimental.templates import Template, ClientFragment
-# from hypie.experimental.client_components import ClientComponent
-from hypie.experimental.hyperscript import HyperScript, script
 from hypie.hs_ast.expressions import Expr
+from hypie.experimental.style import generate_scoped_css
 
 import watchfiles
 
@@ -20,96 +17,79 @@ def find_components_register_artifacts(in_path, out_path, out_files_prefix=""):
     IGNORE_LIST = [".venv", ".pyc", ".pyo"]
     MODULES = set()
 
-    COMPONENTS: set[Component] = set()
-    TEMPLATES: set[Template] = set()
-    # CLIENT_COMPONENTS: set[ClientComponent] = set()
-    HYPERSCRIPT: set[HyperScript] = set()
-    SCRIPTS = set()
     BEHAVIORS = set()
-
-    path = pathlib.Path(in_path).resolve()
-    if not path.exists():
-        raise Exception("Input path does not exist")
-    # print(path, path.parent.resolve())
-    outdir = pathlib.Path(out_path).resolve()
-    if outdir.is_file():
-        raise Exception("--output must be a dir")
-    outdir.mkdir(exist_ok=True, parents=True)
-    # print(outdir)
-    sys.path.insert(0, str(path.parent.resolve()))
-    path_parts_len = len(path.parts)
-    python_files = pathlib.Path(path).glob("**/*.py")
-    for file_path in python_files:
-        if any(p in file_path.parts for p in IGNORE_LIST):
-            continue
-        module_name_parts = list(file_path.parts[path_parts_len - 1 : -1]) + [
-            file_path.stem
-        ]
-        module_name = ".".join(module_name_parts)
-        mod = importlib.import_module(module_name)
-        MODULES.add(module_name)
-        for _, obj in inspect.getmembers(mod):
-            if isinstance(obj, Expr):
+    STYLES = set()
+    try:
+        path = pathlib.Path(in_path).resolve()
+        if not path.exists():
+            raise Exception("Input path does not exist")
+        # print(path, path.parent.resolve())
+        outdir = pathlib.Path(out_path).resolve()
+        if outdir.is_file():
+            raise Exception("--output must be a dir")
+        outdir.mkdir(exist_ok=True, parents=True)
+        # print(outdir)
+        sys.path.insert(0, str(path.parent.resolve()))
+        path_parts_len = len(path.parts)
+        if path.is_file():
+            python_files = [path]
+        else:
+            python_files = pathlib.Path(path).glob("**/*.py")
+        for file_path in python_files:
+            if any(p in file_path.parts for p in IGNORE_LIST):
                 continue
-            if isinstance(obj, type) and issubclass(obj, (Component, ServerFragment)):
-                COMPONENTS.add(obj)
-            elif isinstance(obj, type) and issubclass(obj, (Template, ClientFragment)):
-                TEMPLATES.add(obj)
-            elif isinstance(obj, type) and issubclass(obj, HyperScript):
-                HYPERSCRIPT.add(obj)
-            elif getattr(obj, "_hs_script", False) == True:
-                print(obj, getattr(obj, "_hs_script") == True)
-                SCRIPTS.add(obj)
-            elif getattr(obj, "_hs_behavior", False) == True:
-                BEHAVIORS.add(obj)
+            module_name_parts = list(file_path.parts[path_parts_len - 1 : -1]) + [
+                file_path.stem
+            ]
+            module_name = ".".join(module_name_parts)
+            mod = importlib.import_module(module_name)
+            MODULES.add(module_name)
+            for _, obj in inspect.getmembers(mod):
+                if isinstance(obj, Expr):
+                    continue
+                elif getattr(obj, "_hs_behavior", False) == True:
+                    BEHAVIORS.add(obj)
+                elif getattr(obj, "_hypie_style", False) == True:
+                    STYLES.add(obj)
 
-    # create css files
-    styles = []
-    scripts = []
-    hs_files = []
-    html = []
-    print(
-        f"Done Proccessing: {len(COMPONENTS)} Component, {len(HYPERSCRIPT)} HS Scripts"
-    )
-    for c in COMPONENTS:
-        style = c.generate_style(with_style_tags=False)
-        if style:
-            styles.append(style)
 
-    for h in HYPERSCRIPT:
-        script = h.register_hyperscript()
-        if script:
-            hs_files.append(script)
-    
-    for h in SCRIPTS:
-        script = h()
-        if script:
-            hs_files.append(script)
-    
-    for b in BEHAVIORS:
-        script = b._behavior
-        if script:
-            hs_files.append(script)
+        # create css files
+        styles = []
+        hs_files = []
+        html = []
+        print(
+            f"Done Proccessing: {len(STYLES)} Styles, {len(BEHAVIORS)} Behaviors."
+        )
 
-    style_contents = "\n".join(styles)
-    if style_contents:
-        with open(outdir / f"{out_files_prefix}_hypie_styles.css", "w") as f:
-            f.write(style_contents)
+        for s in STYLES:
+            style = s._style
+            if style:
+                styles.append(generate_scoped_css(", ".join(s._components), style))
+        
+        for b in BEHAVIORS:
+            script = b._behavior
+            if script:
+                hs_files.append(script)
 
-    html_contents = "\n".join(html)
-    if html_contents:
-        with open(outdir / f"{out_files_prefix}_hypie_templates.html", "w") as f:
-            f.write(html_contents)
+        style_contents = "\n".join(styles)
+        if style_contents:
+            with open(outdir / f"{out_files_prefix}_hypie_styles.css", "w") as f:
+                f.write(style_contents)
 
-    hs_contents = "\n".join(h.render() for h in hs_files)
-    if hs_contents:
-        with open(outdir / f"{out_files_prefix}_hypie_hyperscript._hs", "w") as f:
-            f.write(hs_contents)
+        html_contents = "\n".join(html)
+        if html_contents:
+            with open(outdir / f"{out_files_prefix}_hypie_templates.html", "w") as f:
+                f.write(html_contents)
 
-    # clean up
-    sys.path.pop(0)
-    for mod_name in MODULES:
-        del sys.modules[mod_name]
+        hs_contents = "\n".join(h.render() for h in hs_files)
+        if hs_contents:
+            with open(outdir / f"{out_files_prefix}_hypie_hyperscript._hs", "w") as f:
+                f.write(hs_contents)
+    finally:
+        # clean up
+        sys.path.pop(0)
+        for mod_name in MODULES:
+            del sys.modules[mod_name]
 
 
 def main():

@@ -3,8 +3,7 @@ from typing import overload
 from hypie.hs_ast.commands import *
 from hypie.hs_ast.expressions import *
 from hypie.events import Event
-from hypie.experimental.templates import Template, ClientFragment
-# from hypie.experimental.client_components import ClientComponent
+from hypie.experimental.client_component import ClientComponent
 
 
 @overload
@@ -128,26 +127,6 @@ def set_(set_expr: VariableLiteral, /, to: Expr):
 
 
 def put(expr: Expr, /, placement: PUT_PLACEMENTS, target: Expr):
-    # if (
-    #     hasattr(expr, "_hs_dsl_client_component")
-    #     and expr._hs_dsl_client_component == True
-    # ):
-    #     # expr = TemplateLiteral(expr.__html__())
-    #     tag = f"<{expr.component_name}/>"
-    #     # f:python_to_hs(getattr(self, f)) for f in self.field_names
-    #     commands = [make(tag)]
-    #     # for f in expr.field_names
-    #     return [
-    #         make(tag),
-    #         [
-    #             set_(
-    #                 VariableLiteral(f"result's @{f}"),
-    #                 to=VariableLiteral(f"`'${{{getattr(expr, f)}}}'`"),
-    #             )
-    #             for f in expr.field_names
-    #         ],
-    #         Put(expr=VariableLiteral("result"), placement=placement, target=target),
-    #     ]
     return Put(expr=expr, placement=placement, target=target)
 
 
@@ -211,11 +190,14 @@ def make(object_name: str, /, *from_: Expr | list[Expr], called: str = None):
     return Make(object_name=object_name, from_=from_, called=called)
 
 
-def render(template: Template | ClientFragment):
-    if isinstance(template, (ClientFragment | Template)):
+def render(template: ClientComponent):
+    def extract_expr(v):
+        if isinstance(v, TemplatedVariableLiteral):
+            return v.symbol
+    if isinstance(template, (ClientComponent)):
         return Render(
             template_id=template._template_id,
-            with_={f: getattr(template, f) for f in template.field_names},
+            with_={f: extract_expr(getattr(template, f)) for f in template.field_names},
         )
     raise Exception("render only accepts Client Fragments")
 

@@ -1,0 +1,34 @@
+behavior add_todo_form_effects(todo_items_container)
+  on AddTodoEvent(AddTodoEvent__title)
+    fetch / as HTML with {
+      method: 'POST',
+      body: {
+        title: AddTodoEvent__title
+      } as JSONString,
+      headers: {
+        Content-Type: 'application/json'
+      }
+    }
+    put result at end of todo_items_container
+    set #add-todo-input's value to ''
+  end
+end
+behavior todo_item_effects
+  on RequestRemoveTodoEvent(RequestRemoveTodoEvent__id, RequestRemoveTodoEvent__title)
+    render #todo-deletion-modal-client-hypie-template with todo_id: RequestRemoveTodoEvent__id, title: RequestRemoveTodoEvent__title
+    put result at end of body
+  end
+  on ToggleTodoEvent(ToggleTodoEvent__id)
+    fetch `/toggle/${ToggleTodoEvent__id}` as HTML with {
+      method: 'PATCH'
+    }
+    morph #{'todo-' + ToggleTodoEvent__id} to result
+  end
+  on RemoveTodoEvent(RemoveTodoEvent__id) from body
+    fetch `/${RemoveTodoEvent__id}` as HTML with {
+      method: 'DELETE'
+    }
+    remove #{'todo-' + RemoveTodoEvent__id}
+    remove <[data-delete-todo-modal]/>
+  end
+end

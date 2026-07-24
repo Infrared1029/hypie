@@ -1,0 +1,72 @@
+behavior rerender_reciept
+  on CartItemsUpdatedEvent(CartItemsUpdatedEvent__cart_items, CartItemsUpdatedEvent__item_added) from closest <[data-cart-store]/>
+    js(CartItemsUpdatedEvent__cart_items)
+      return CartItemsUpdatedEvent__cart_items.reduce((acc, i) => acc + (i["price"] * i["qty"]), 0).toFixed(2)
+    end
+    render #reciept-client-hypie-template with total: result
+    morph <[data-cart-receipt]/> to result
+  end
+end
+behavior rerender_cart_items
+  on CartItemsUpdatedEvent(CartItemsUpdatedEvent__cart_items, CartItemsUpdatedEvent__item_added) from closest <[data-cart-store]/>
+    render #cart-items-hypie-template with items: CartItemsUpdatedEvent__cart_items
+    morph first <[data-cart-items]/> to result
+    if CartItemsUpdatedEvent__item_added
+      scroll to bottom of last <[data-cart-item]/> smoothly
+    end
+  end
+end
+behavior cart_store_setup
+  init immediately
+    set @data-cart-store to true
+    set ^store to {
+      items: [
+      
+      ]
+    }
+  end
+  on AddProductToCartEvent(AddProductToCartEvent__id, AddProductToCartEvent__name, AddProductToCartEvent__price, AddProductToCartEvent__img_url)
+    set my_store to ^store
+    js(my_store, AddProductToCartEvent__id, AddProductToCartEvent__name, AddProductToCartEvent__price, AddProductToCartEvent__img_url)
+      const id = AddProductToCartEvent__id;
+      const exists = my_store.items.some(p => p.id === id);
+      const newItems = exists
+      ? my_store.items.map(p => p.id === id ? { ...p, qty: p.qty + 1 } : p)
+      : [...my_store.items, {
+          id,
+          name: AddProductToCartEvent__name,
+          price: AddProductToCartEvent__price,
+          img_url: AddProductToCartEvent__img_url,
+          qty: 1
+          }];
+      return { items: newItems, item_added: !exists };
+    end
+    set ^store to {
+      items: result['items']
+    }
+    trigger CartItemsUpdatedEvent(CartItemsUpdatedEvent__cart_items:result['items'], CartItemsUpdatedEvent__item_added:result['item_added'])
+  end
+  on DeleteCartItem(DeleteCartItem__item_id)
+    set my_store to ^store
+    js(my_store, DeleteCartItem__item_id)
+      let items = my_store['items'].filter(i => i["id"] !== DeleteCartItem__item_id)
+      return {"items": items}
+    end
+    set ^store to result
+    trigger CartItemsUpdatedEvent(CartItemsUpdatedEvent__cart_items:^store['items'], CartItemsUpdatedEvent__item_added:false)
+  end
+  on ChangeCartItemQty(ChangeCartItemQty__item_id, ChangeCartItemQty__change)
+    set my_store to ^store
+    js(my_store, ChangeCartItemQty__item_id, ChangeCartItemQty__change)
+      let items = my_store['items'].map(i => i["id"] == ChangeCartItemQty__item_id 
+          ? (ChangeCartItemQty__change == "inc" 
+          ? {...i, "qty": i["qty"] + 1} 
+          : {...i, "qty": i["qty"] - 1}) : {...i}
+      )
+      items = items.filter(i => i["qty"] !== 0)
+      return {"items": items}
+    end
+    set ^store to result
+    trigger CartItemsUpdatedEvent(CartItemsUpdatedEvent__cart_items:^store['items'], CartItemsUpdatedEvent__item_added:false)
+  end
+end

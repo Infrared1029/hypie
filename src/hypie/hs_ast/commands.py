@@ -498,6 +498,7 @@ class Js(Command):
     def __getitem__(self, javascript: str):
         if not isinstance(javascript, str):
             raise Exception("js command only accepts a single javascript string")
+        javascript = re.sub(r"\A//js\n+", "", javascript)
         self.javascript = dedent(re.sub(r"\A[\n]+|[\s\n]+\Z", "", javascript))
         return self
     
